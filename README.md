@@ -87,6 +87,8 @@ On first launch, Copy asks for Accessibility access (to paste for you) and, on m
 | --- | --- |
 | <kbd>⇧⌘V</kbd> | Open the shelf |
 | <kbd>←</kbd> / <kbd>→</kbd> | Move selection |
+| <kbd>⌘C</kbd> | Copy the selection to the clipboard |
+| <kbd>⌘V</kbd> | Paste the selection |
 | <kbd>⏎</kbd> | Paste selected card |
 | <kbd>⌥⏎</kbd> | Paste as plain text |
 | <kbd>Space</kbd> | Preview selected card |
@@ -96,7 +98,8 @@ On first launch, Copy asks for Accessibility access (to paste for you) and, on m
 | <kbd>⌘R</kbd> | Rename selected card |
 | <kbd>⌘O</kbd> | Open selected link or file |
 | <kbd>⌘Z</kbd> | Undo the last delete |
-| <kbd>⌘⌫</kbd> | Delete selected card |
+| <kbd>⌫</kbd> | Delete selected card (when the search box is empty) |
+| <kbd>⌘⌫</kbd> | Clear the search, or delete the selected card |
 | <kbd>⌘N</kbd> | New item |
 | <kbd>⇧⌘C</kbd> | Toggle the paste stack |
 
