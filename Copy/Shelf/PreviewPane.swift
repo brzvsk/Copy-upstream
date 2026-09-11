@@ -11,17 +11,6 @@ struct PreviewPane: View {
         QuickLookController.fileURLs(for: item, store: store)
     }
 
-    /// File cards keep their original on-disk URLs instead of image bytes in Copy's
-    /// database. When the first available file is itself an image, route Space preview
-    /// through an image renderer rather than treating it like a generic document.
-    private var imageFileURL: URL? {
-        quickLookURLs.first { url in
-            guard let values = try? url.resourceValues(forKeys: [.contentTypeKey]),
-                  let contentType = values.contentType else { return false }
-            return contentType.conforms(to: .image)
-        }
-    }
-
     /// How much of the preview's text ever gets tokenized for syntax color. The pane
     /// only shows a 420×320 window (a few dozen visible lines), so 10k characters is
     /// comfortably more than anything on screen for realistic pastes; a 500KB code
@@ -64,27 +53,7 @@ struct PreviewPane: View {
                 }
                 .padding(16)
             case .file:
-                if let imageFileURL {
-                    FileImagePreview(url: imageFileURL)
-                        .id(imageFileURL)
-                        .padding(12)
-                } else {
-                    VStack(spacing: 10) {
-                        Image(nsImage: NSWorkspace.shared.icon(for: Tokens.fileType(for: item)))
-                            .resizable()
-                            .frame(width: 64, height: 64)
-                        Text(item.plainText ?? "File")
-                            .font(.system(size: 13, design: .monospaced))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(4)
-                        if !quickLookURLs.isEmpty {
-                            Button("Quick Look") {
-                                QuickLookController.shared.preview(quickLookURLs)
-                            }
-                        }
-                    }
-                    .padding(16)
-                }
+                FileCardPreview(item: item, urls: quickLookURLs)
             default:
                 ScrollView {
                     codeAwarePreviewText(item.plainText ?? "")
@@ -154,5 +123,66 @@ private struct FileImagePreview: View {
                 didFail = decoded == nil
             }
         }
+    }
+}
+
+/// The Space preview for a file card. Deciding whether the card points at an image means
+/// asking the file system for each URL's content type, and that call blocks for as long
+/// as the volume takes to answer — unbounded on a network share or a sleeping disk. The
+/// probe therefore runs off the main thread, and the pane shows the same spinner
+/// `FileImagePreview` uses while it decodes, so the generic icon never flashes first.
+private struct FileCardPreview: View {
+    let item: ClipItem
+    let urls: [URL]
+    @State private var imageURL: URL?
+    @State private var didProbe = false
+
+    var body: some View {
+        Group {
+            if let imageURL {
+                FileImagePreview(url: imageURL)
+                    .id(imageURL)
+                    .padding(12)
+            } else if didProbe {
+                genericFile
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task(id: item.uuid) {
+            imageURL = nil
+            didProbe = false
+            let candidates = urls
+            let found = await Task.detached(priority: .userInitiated) {
+                candidates.first { url in
+                    guard let values = try? url.resourceValues(forKeys: [.contentTypeKey]),
+                          let contentType = values.contentType else { return false }
+                    return contentType.conforms(to: .image)
+                }
+            }.value
+            guard !Task.isCancelled else { return }
+            imageURL = found
+            didProbe = true
+        }
+    }
+
+    private var genericFile: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(for: Tokens.fileType(for: item)))
+                .resizable()
+                .frame(width: 64, height: 64)
+            Text(item.plainText ?? "File")
+                .font(.system(size: 13, design: .monospaced))
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+            if !urls.isEmpty {
+                Button("Quick Look") {
+                    QuickLookController.shared.preview(urls)
+                }
+            }
+        }
+        .padding(16)
     }
 }
