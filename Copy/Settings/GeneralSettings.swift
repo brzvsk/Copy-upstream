@@ -56,6 +56,28 @@ struct GeneralSettings: View {
             }
 
             Section {
+                HStack {
+                    Text("Copy Sound")
+                    Spacer()
+                    Picker("Copy Sound", selection: $settings.copySound) {
+                        ForEach(CopySound.allCases) { sound in
+                            Text(sound.title).tag(sound)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 120)
+                }
+                .onChange(of: settings.copySound) { _, sound in
+                    CopySoundPlayer.shared.play(sound)
+                }
+            } footer: {
+                Text("Plays after Copy captures a new clipboard item.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Toggle("Launch at Login", isOn: launchAtLoginBinding)
             } footer: {
                 if let launchAtLoginError {

@@ -381,6 +381,7 @@ final class AppCoordinator {
                             // Already on the main queue; hop into main-actor isolation for
                             // the one-time activation nudges (see the methods).
                             MainActor.assumeIsolated {
+                                CopySoundPlayer.shared.play(settings.copySound)
                                 AppCoordinator.showFirstCopyCoachIfNeeded()
                                 if !pasteStackModel.isActive {
                                     AppCoordinator.notePasteStackOpportunity()
@@ -616,6 +617,9 @@ final class AppCoordinator {
         }
         pasteService.place(reps, plainTextOnly: false)
         try? store.touch(itemID: id)
+        // The monitor ignores our own marked write, so the capture path below never
+        // sees this copy and the feedback has to be asked for here.
+        CopySoundPlayer.shared.play(settings.copySound)
         return true
     }
 
