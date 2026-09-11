@@ -2,31 +2,29 @@ import AppKit
 import Foundation
 import Observation
 
-/// Optional feedback played after Copy successfully records a clipboard change.
-/// Raw values are persisted in UserDefaults, so keep them stable across releases.
-/// Each case names a sound macOS ships in `/System/Library/Sounds`; adding another of
-/// those (Bottle, Glass, Morse, Purr...) is one case here and nothing else.
+/// Optional feedback played after Copy successfully records a clipboard change. Every
+/// case but `off` is one of the fourteen sounds macOS ships in `/System/Library/Sounds`,
+/// listed in the order the system itself lists them, and the picker shows each under the
+/// name the system uses, so what a screener reads here is what they would read in Sound
+/// settings. Raw values are persisted in UserDefaults, so keep them stable across
+/// releases.
 enum CopySound: String, CaseIterable, Identifiable {
     case off
-    case pop
-    case tink
+    case basso, blow, bottle, frog, funk, glass, hero
+    case morse, ping, pop, purr, sosumi, submarine, tink
 
     var id: Self { self }
 
-    var title: String {
-        switch self {
-        case .off: return "Off"
-        case .pop: return "Pop"
-        case .tink: return "Tink"
-        }
+    /// The sound's file name under `/System/Library/Sounds`. Capitalising the raw value
+    /// is the whole mapping, because every sound macOS ships is a single capitalised
+    /// word. A name that ever stops resolving simply plays nothing (see `CopySoundPlayer`).
+    var systemSoundName: NSSound.Name? {
+        guard self != .off else { return nil }
+        return NSSound.Name(rawValue.capitalized)
     }
 
-    var systemSoundName: NSSound.Name? {
-        switch self {
-        case .off: return nil
-        case .pop: return "Pop"
-        case .tink: return "Tink"
-        }
+    var title: String {
+        systemSoundName ?? "Off"
     }
 }
 
