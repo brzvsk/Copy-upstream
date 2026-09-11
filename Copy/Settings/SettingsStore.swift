@@ -1,28 +1,31 @@
+import AppKit
 import Foundation
 import Observation
 
 /// Optional feedback played after Copy successfully records a clipboard change.
 /// Raw values are persisted in UserDefaults, so keep them stable across releases.
+/// Each case names a sound macOS ships in `/System/Library/Sounds`; adding another of
+/// those (Bottle, Glass, Morse, Purr...) is one case here and nothing else.
 enum CopySound: String, CaseIterable, Identifiable {
     case off
-    case bubblePop
-    case clickTone
+    case pop
+    case tink
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .off: return "Off"
-        case .bubblePop: return "Bubble"
-        case .clickTone: return "Click"
+        case .pop: return "Pop"
+        case .tink: return "Tink"
         }
     }
 
-    var resourceName: String? {
+    var systemSoundName: NSSound.Name? {
         switch self {
         case .off: return nil
-        case .bubblePop: return "copy-bubble-pop"
-        case .clickTone: return "copy-click-tone"
+        case .pop: return "Pop"
+        case .tink: return "Tink"
         }
     }
 }

@@ -1,57 +1,35 @@
 import AppKit
 
-extension Notification.Name {
-    /// Posted after Copy itself successfully places a selected shelf item on the
-    /// pasteboard. The clipboard monitor ignores that marked write, so this separate
-    /// event avoids both missed feedback and double playback.
-    static let copyDidCompleteInternalCopy = Notification.Name(
-        "com.tarikbc.copy.didCompleteInternalCopy")
-}
-
-/// Small cached player for optional clipboard-capture feedback. `NSSound` is enough for
-/// these sub-second bundled WAVs and follows the user's system output device and volume.
+/// Plays the optional feedback for a clipboard capture. The sounds are the ones macOS
+/// already ships in `/System/Library/Sounds`, so Copy bundles no audio of its own: a
+/// stock-audio licence that permits redistribution from a public GPL repository is hard
+/// to satisfy (both Pixabay and Mixkit forbid handing their files over on their own, and
+/// a file in this repo is downloadable on its own), and a system sound already follows
+/// the listener's output device and alert volume.
 @MainActor
 final class CopySoundPlayer {
     static let shared = CopySoundPlayer()
 
     private var cache: [CopySound: NSSound] = [:]
     private var playing: NSSound?
-    private var internalCopyObserver: NSObjectProtocol?
 
-    private init() {
-        internalCopyObserver = NotificationCenter.default.addObserver(
-            forName: .copyDidCompleteInternalCopy,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.playPersistedSelection()
-            }
-        }
-    }
+    private init() {}
 
     func play(_ choice: CopySound) {
+        // A burst of copies should sound like the latest one, not like all of them.
         playing?.stop()
         playing = nil
 
-        guard let resourceName = choice.resourceName else { return }
+        guard let name = choice.systemSoundName else { return }
         let sound: NSSound
         if let cached = cache[choice] {
             sound = cached
         } else {
-            guard let url = Bundle.main.url(forResource: resourceName, withExtension: "wav"),
-                  let loaded = NSSound(contentsOf: url, byReference: false) else { return }
+            guard let loaded = NSSound(named: name) else { return }
             cache[choice] = loaded
             sound = loaded
         }
-
         playing = sound
         sound.play()
-    }
-
-    private func playPersistedSelection() {
-        let choice = UserDefaults.standard.string(forKey: SettingsStore.copySoundKey)
-            .flatMap(CopySound.init(rawValue:)) ?? .off
-        play(choice)
     }
 }

@@ -356,10 +356,6 @@ final class AppCoordinator {
         }
         let settings = SettingsStore()
         self.settings = settings
-        // Start listening before the shelf can perform an explicit Cmd+C. That path
-        // marks its pasteboard write as internal, so the clipboard monitor correctly
-        // ignores it and cannot be the source of sound feedback.
-        _ = CopySoundPlayer.shared
         let linkFetcher = LinkMetadataFetcher(store: store)
         let ocrController = OCRController(store: store)
         let reporter = saveErrors
@@ -621,6 +617,9 @@ final class AppCoordinator {
         }
         pasteService.place(reps, plainTextOnly: false)
         try? store.touch(itemID: id)
+        // The monitor ignores our own marked write, so the capture path below never
+        // sees this copy and the feedback has to be asked for here.
+        CopySoundPlayer.shared.play(settings.copySound)
         return true
     }
 

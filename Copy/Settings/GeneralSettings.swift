@@ -26,7 +26,7 @@ struct GeneralSettings: View {
                     Text("Standard").tag(false)
                     Text("Compact").tag(true)
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.segmented)
             } footer: {
                 Text("Compact shows smaller cards so more fit in the shelf at once.")
                     .font(.footnote)
