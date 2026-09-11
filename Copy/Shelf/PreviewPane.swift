@@ -1,5 +1,7 @@
 import SwiftUI
 import CopyCore
+import ImageIO
+import UniformTypeIdentifiers
 
 struct PreviewPane: View {
     let item: ClipItem
@@ -51,21 +53,7 @@ struct PreviewPane: View {
                 }
                 .padding(16)
             case .file:
-                VStack(spacing: 10) {
-                    Image(nsImage: NSWorkspace.shared.icon(for: Tokens.fileType(for: item)))
-                        .resizable()
-                        .frame(width: 64, height: 64)
-                    Text(item.plainText ?? "File")
-                        .font(.system(size: 13, design: .monospaced))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(4)
-                    if !quickLookURLs.isEmpty {
-                        Button("Quick Look") {
-                            QuickLookController.shared.preview(quickLookURLs)
-                        }
-                    }
-                }
-                .padding(16)
+                FileCardPreview(item: item, urls: quickLookURLs)
             default:
                 ScrollView {
                     codeAwarePreviewText(item.plainText ?? "")
@@ -85,5 +73,116 @@ struct PreviewPane: View {
         // corners past the rounded backing on either code path.
         .glassSurface(cornerRadius: 12)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+/// Decodes an image-file card from its original URL for the larger Space preview.
+/// This deliberately does not use the 400-point Quick Look thumbnail used by shelf
+/// cards: ImageIO downsamples the source itself at a size suitable for a Retina pane.
+private struct FileImagePreview: View {
+    let url: URL
+    @State private var image: NSImage?
+    @State private var didFail = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else if didFail {
+                Image(systemName: "photo.badge.exclamationmark")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.secondary)
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .quaternaryLabelColor).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .onAppear(perform: loadImage)
+    }
+
+    private func loadImage() {
+        guard image == nil, !didFail else { return }
+        let requestedURL = url
+        DispatchQueue.global(qos: .userInitiated).async {
+            let source = CGImageSourceCreateWithURL(requestedURL as CFURL, nil)
+            let cgImage = source.flatMap {
+                CGImageSourceCreateThumbnailAtIndex($0, 0, [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceThumbnailMaxPixelSize: 1_600,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                ] as CFDictionary)
+            }
+            let decoded = cgImage.map { NSImage(cgImage: $0, size: .zero) }
+            DispatchQueue.main.async {
+                image = decoded
+                didFail = decoded == nil
+            }
+        }
+    }
+}
+
+/// The Space preview for a file card. Deciding whether the card points at an image means
+/// asking the file system for each URL's content type, and that call blocks for as long
+/// as the volume takes to answer — unbounded on a network share or a sleeping disk. The
+/// probe therefore runs off the main thread, and the pane shows the same spinner
+/// `FileImagePreview` uses while it decodes, so the generic icon never flashes first.
+private struct FileCardPreview: View {
+    let item: ClipItem
+    let urls: [URL]
+    @State private var imageURL: URL?
+    @State private var didProbe = false
+
+    var body: some View {
+        Group {
+            if let imageURL {
+                FileImagePreview(url: imageURL)
+                    .id(imageURL)
+                    .padding(12)
+            } else if didProbe {
+                genericFile
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task(id: item.uuid) {
+            imageURL = nil
+            didProbe = false
+            let candidates = urls
+            let found = await Task.detached(priority: .userInitiated) {
+                candidates.first { url in
+                    guard let values = try? url.resourceValues(forKeys: [.contentTypeKey]),
+                          let contentType = values.contentType else { return false }
+                    return contentType.conforms(to: .image)
+                }
+            }.value
+            guard !Task.isCancelled else { return }
+            imageURL = found
+            didProbe = true
+        }
+    }
+
+    private var genericFile: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(for: Tokens.fileType(for: item)))
+                .resizable()
+                .frame(width: 64, height: 64)
+            Text(item.plainText ?? "File")
+                .font(.system(size: 13, design: .monospaced))
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+            if !urls.isEmpty {
+                Button("Quick Look") {
+                    QuickLookController.shared.preview(urls)
+                }
+            }
+        }
+        .padding(16)
     }
 }
