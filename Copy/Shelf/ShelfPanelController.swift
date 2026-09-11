@@ -123,6 +123,12 @@ final class ShelfPanelController: NSObject, NSWindowDelegate {
         // re-summoning mid-close animates straight back in.
         closeToken += 1
         isHiding = false
+        // Whatever was queued behind that close is cancelled with it. Only `finishHide`
+        // drains this, and the superseded animation never reaches it, so a survivor would
+        // sit here and fire at the *next* close: a paste the screener asked for before
+        // re-opening the shelf, landing in whatever app is frontmost seconds later.
+        // Re-summoning the shelf is them changing their mind, so drop it.
+        pendingHideCompletions.removeAll()
 
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         panel.setFrame(reduceMotion ? frame : frame.offsetBy(dx: 0, dy: -24), display: false)
