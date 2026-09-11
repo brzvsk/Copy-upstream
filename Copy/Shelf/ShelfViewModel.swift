@@ -114,6 +114,9 @@ final class ShelfViewModel {
     @ObservationIgnored var onPasteMultiple: ((String) -> Void)?
     @ObservationIgnored var onAddToPasteStack: ((ClipItem) -> Void)?
     @ObservationIgnored var onCopyText: ((String) -> Void)?
+    /// Places one card's full representations on the clipboard. Returns whether it
+    /// worked, so `copySelection` can leave the shelf open when the item is gone.
+    @ObservationIgnored var onCopyItem: ((ClipItem) -> Bool)?
     @ObservationIgnored var onAdjustColorCopy: ((String) -> Void)?
     /// Opens a resolved link/file URL in its default app. `AppCoordinator` wires this to
     /// hide the shelf (restoring focus to the previous app) and hand off to NSWorkspace,
@@ -460,6 +463,27 @@ final class ShelfViewModel {
             NSLog("Copy: image rotate failed: \(error)")
             HUD.show("Couldn't rotate that")
         }
+    }
+
+    /// ⌘C's mirror of `pasteSelection`, and it has to be a mirror: ⌘V and ⌘⌫ both act on
+    /// the whole selection, so a ⌘C that silently copied only the primary card would be
+    /// the one multi-select gesture that quietly did something else. One card copies its
+    /// full representations; several copy their joined text, because the pasteboard holds
+    /// one item at a time. Returns whether the caller should close the shelf.
+    func copySelection() -> Bool {
+        let picked = orderedSelectedItems
+        if picked.count <= 1 {
+            guard let item = picked.first ?? primaryItem else { return false }
+            return onCopyItem?(item) ?? false
+        }
+        let filtered = picked.filter { isEditableKind($0.kind) || $0.kind == .color }
+        guard !filtered.isEmpty else {
+            HUD.show("No text in selection")
+            return false
+        }
+        if filtered.count == 1 { return onCopyItem?(filtered[0]) ?? false }
+        onCopyText?(filtered.map { $0.plainText ?? "" }.joined(separator: "\n"))
+        return true
     }
 
     func pasteSelection(plain: Bool) {

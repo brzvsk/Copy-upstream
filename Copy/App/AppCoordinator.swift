@@ -147,12 +147,19 @@ final class AppCoordinator {
             case 36: // return
                 viewModel.pasteSelection(plain: event.modifierFlags.contains(.option))
                 return true
-            case 8 where shortcutModifiers == .command: // cmd-C — copy primary card
-                if let item = viewModel.primaryItem, self.copyToClipboard(item) {
+            // Both guard on an empty search field. The shelf keeps that field focused at
+            // all times (see the ⌥-digit note above), so an unguarded ⌘V would take the
+            // one key a screener needs to paste a search term in, and an unguarded ⌘C
+            // would take copying it back out. With text in the field these fall to
+            // `default` and the field handles them, exactly as Backspace does below.
+            case 8 where shortcutModifiers == .command
+                && viewModel.searchQuery.text.isEmpty: // cmd-C — copy the selection
+                if viewModel.copySelection() {
                     controller.hide(restoreFocus: true)
                 }
                 return true
-            case 9 where shortcutModifiers == .command: // cmd-V — paste selected card
+            case 9 where shortcutModifiers == .command
+                && viewModel.searchQuery.text.isEmpty: // cmd-V — paste the selection
                 viewModel.pasteSelection(plain: false)
                 return true
             case 51 where event.modifierFlags.contains(.command): // cmd-delete
@@ -251,6 +258,9 @@ final class AppCoordinator {
         }
         shelfViewModel.onCopyText = { [weak self] text in
             self?.copyText(text)
+        }
+        shelfViewModel.onCopyItem = { [weak self] item in
+            self?.copyToClipboard(item) ?? false
         }
         shelfViewModel.onAdjustColorCopy = { [weak self] hex in
             self?.adjustColorCopy(hex)
@@ -592,10 +602,10 @@ final class AppCoordinator {
         HUD.show("Added to Paste Stack")
     }
 
-    /// Places the primary shelf card on the system clipboard without synthesizing a
-    /// paste. The self marker keeps the monitor from ingesting a duplicate; touching
-    /// the existing item makes it the current entry in history too. Returns whether the
-    /// caller should close the shelf after the copy completed successfully.
+    /// Places one shelf card on the system clipboard without synthesizing a paste. The
+    /// self marker keeps the monitor from ingesting a duplicate; touching the existing
+    /// item makes it the current entry in history too. Returns whether the caller should
+    /// close the shelf after the copy completed successfully.
     @discardableResult
     func copyToClipboard(_ item: ClipItem) -> Bool {
         guard let id = item.id,
@@ -606,12 +616,6 @@ final class AppCoordinator {
         }
         pasteService.place(reps, plainTextOnly: false)
         try? store.touch(itemID: id)
-        // Optional feedback is owned by the separate copy-sound feature. Posting this
-        // event is harmless without it and avoids re-ingesting our marked pasteboard
-        // write just to detect a successful shelf copy.
-        NotificationCenter.default.post(
-            name: Notification.Name("com.tarikbc.copy.didCompleteInternalCopy"),
-            object: nil)
         return true
     }
 
