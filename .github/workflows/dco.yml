@@ -1,3 +1,19 @@
+# Deliberately NOT a required status check, and it should stay that way while
+# release.yml still pushes to main.
+#
+# GitHub's required-status-check rule blocks direct pushes to the ref: "commits
+# must first be pushed to another ref where the checks pass". The release job
+# pushes docs/appcast.xml straight to main as github-actions[bot], and that push
+# is what delivers updates to installed copies. Marking this check required
+# would reject it, and the breakage would surface at release time, not now.
+#
+# A bypass is not available either: ruleset bypass actors only list apps
+# installed on the repo, and the GitHub Actions app is not among them.
+#
+# So this check advises. It goes red on any pull request carrying an unsigned
+# commit, which is enough while the repo has a single maintainer. To make it
+# blocking, first stop the release job pushing to main (serve Pages from its own
+# branch), or give that push an admin PAT that bypasses the rule.
 name: DCO
 on:
   pull_request:

@@ -34,8 +34,8 @@ newer-OS features behind availability checks.
 
 ## Sign your commits off
 
-Every commit needs a `Signed-off-by` trailer matching its author. The `DCO` check
-in CI enforces it and will fail the pull request otherwise.
+Every commit needs a `Signed-off-by` trailer matching its author. CI checks this
+and the `signoff` check goes red on the pull request otherwise.
 
 Add one with `-s`:
 
