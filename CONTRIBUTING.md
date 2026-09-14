@@ -58,6 +58,21 @@ git rebase --signoff origin/main    # every commit on your branch
 
 Then force-push your branch.
 
+### Or let a hook remember for you
+
+The repo ships a `prepare-commit-msg` hook that adds the trailer to every commit.
+Turn it on once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+After that, plain `git commit` is signed off and `-s` becomes optional. The hook
+skips merge commits, never duplicates a trailer you already wrote, and does
+nothing if your git identity is unset. It is a dozen lines of `sh`; read it at
+[`.githooks/prepare-commit-msg`](.githooks/prepare-commit-msg) before you enable
+it, the same as you would any hook.
+
 ### What you are certifying
 
 The trailer says you have the right to submit the code under GPL-3.0. It is the

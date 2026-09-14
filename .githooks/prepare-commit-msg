@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Adds a Signed-off-by trailer matching the commit author, so the DCO check in
+# CI passes without anyone having to remember `git commit -s`.
+#
+# Install it for this clone with:
+#
+#     git config core.hooksPath .githooks
+#
+# CONTRIBUTING.md explains what the sign-off certifies.
+
+msg_file="$1"
+source="$2"
+
+# Merge commits are exempt from the DCO check, and their author did not write
+# the commits being merged, so there is nothing to certify.
+[ "$source" = "merge" ] && exit 0
+
+name="$(git config user.name)"
+email="$(git config user.email)"
+
+# Better no trailer than a malformed one. Git stops at a commit with no identity
+# anyway, with a clearer message than this hook could produce.
+if [ -z "$name" ] || [ -z "$email" ]; then
+  exit 0
+fi
+
+# addIfDifferent is the point: by the time this hook runs, `git commit -s` has
+# already written the trailer, and a second identical one must not appear. A
+# sign-off from somebody else does not block ours, which is what the CI check
+# wants, since it matches the trailer against the author.
+git interpret-trailers \
+  --if-exists addIfDifferent \
+  --trailer "Signed-off-by: $name <$email>" \
+  --in-place "$msg_file"
