@@ -1,0 +1,77 @@
+name: DCO
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  signoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The check walks base..head, so both ends of the range have to exist
+          # locally. The default shallow clone has neither.
+          fetch-depth: 0
+
+      - name: Every commit carries a matching Signed-off-by
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+
+          # Merge commits are exempt. GitHub writes them itself when a branch is
+          # updated from the web UI, and nobody can certify authorship of a commit
+          # they did not write.
+          commits="$(git rev-list --no-merges "$BASE".."$HEAD")"
+
+          if [ -z "$commits" ]; then
+            echo "No non-merge commits in this range. Nothing to check."
+            exit 0
+          fi
+
+          while read -r sha; do
+            [ -n "$sha" ] || continue
+            author="$(git show -s --format='%an <%ae>' "$sha")"
+            # A commit subject is attacker-controlled text from a fork's branch,
+            # and it lands in a ::error annotation below. Neutering "::" stops a
+            # crafted subject from closing the annotation and issuing its own
+            # workflow command.
+            subject="$(git show -s --format='%s' "$sha" | tr -d '\r\n' | sed 's/::/--/g')"
+
+            # -i because `git commit -s` and a hand-typed trailer disagree about
+            # the case of the address, and neither spelling is wrong. -F because
+            # a name can contain regex metacharacters.
+            # Bots are exempt. github-actions[bot] and dependabot[bot] cannot
+            # certify anything, and their commits arrive already pushed, so a
+            # failure here would be unfixable rather than informative.
+            case "$author" in
+              *"[bot]"*)
+                echo "skip  ${sha:0:8}  $subject (bot)"
+                continue
+                ;;
+            esac
+
+            if git show -s --format='%B' "$sha" | grep -qiF "Signed-off-by: $author"; then
+              echo "ok    ${sha:0:8}  $subject"
+            else
+              echo "::error::${sha:0:8} (\"$subject\") is missing \"Signed-off-by: $author\""
+              missing=1
+            fi
+          done <<< "$commits"
+
+          if [ "$missing" = 1 ]; then
+            echo ""
+            echo "The trailer has to match the commit author exactly. Add it with:"
+            echo ""
+            echo "    git commit --amend -s --no-edit     # the last commit only"
+            echo "    git rebase --signoff origin/main    # every commit on the branch"
+            echo ""
+            echo "then force-push the branch. CONTRIBUTING.md explains what the"
+            echo "sign-off certifies, and DCO carries the four clauses in full."
+            exit 1
+          fi
+
+          echo "All commits are signed off."

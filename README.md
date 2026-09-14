@@ -154,6 +154,15 @@ The design language is deliberately quiet and native (no colored card stripes, n
 clutter), and the app keeps a macOS 14 floor with newer-OS features gated behind
 availability checks.
 
+Commits need a `Signed-off-by` trailer, which `git commit -s` adds for you. CI
+checks it. [CONTRIBUTING.md](CONTRIBUTING.md) has the build commands and explains
+what the sign-off certifies.
+
 ## License
 
 [GPL-3.0](LICENSE). © 2026 Tarik Caramanico.
+
+Forks are welcome and the code is yours to take. The name and the artwork are not
+part of that grant: [NOTICE](NOTICE) records an additional term under GPL-3.0
+section 7(e), and [TRADEMARK.md](TRADEMARK.md) says what it means in practice. The
+short version is to ship your fork under your own name.

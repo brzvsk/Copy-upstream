@@ -1,0 +1,91 @@
+Copy
+Copyright (C) 2026 Tarik Caramanico
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 3, as published by the
+Free Software Foundation. The full license text is in LICENSE.
+
+The upstream project lives at https://github.com/tarikbc/Copy.
+
+
+ADDITIONAL TERMS UNDER SECTION 7 OF THE GNU GPL VERSION 3
+=========================================================
+
+Section 7 of the GNU General Public License version 3 permits a copyright
+holder to supplement the License with a short list of additional terms. Two of
+them apply to this program and to every work based on it. They are additional
+terms of the kind section 7 permits, not "further restrictions" within the
+meaning of section 10, so they travel with the code and may not be stripped
+from it.
+
+Neither term takes away anything the GPL grants you in the source code. You
+remain free to use, study, modify, redistribute, and sell this code. You just
+do it under your own name.
+
+
+1. Trademarks -- section 7(e)
+-----------------------------
+
+As permitted by section 7(e), "Declining to grant rights under trademark law
+for use of some trade names, trademarks, or service marks":
+
+  No permission is granted, express or implied, to use the trade names,
+  trademarks, service marks, product names, or logos of the copyright holder.
+  This includes, without limitation:
+
+    - the name "Copy", used as the name of a clipboard manager or of any
+      substantially similar application;
+    - the Copy application icon, logo mark, wordmark, banner, favicon, and
+      social preview image, including the files under docs/assets/img/;
+    - the project website at https://tarikbc.github.io/Copy;
+    - the Homebrew cask name "tarikbc/tap/copy".
+
+  This term does not restrict nominative use. Naming this program to describe
+  where your work came from, referring to it truthfully, writing about it, and
+  reproducing the contents of this NOTICE file are all expressly permitted.
+  TRADEMARK.md explains where the line falls in practice.
+
+
+2. Attribution -- section 7(b)
+------------------------------
+
+As permitted by section 7(b), "Requiring preservation of specified reasonable
+legal notices or author attributions in that material or in the Appropriate
+Legal Notices displayed by works containing it":
+
+  If you convey this program or a work based on it, you must preserve the
+  copyright notice above, this NOTICE file, and the attribution shown in the
+  program's own Appropriate Legal Notices, which for this program is the
+  About pane in Settings.
+
+  Section 5(a) of the License already requires you to state that you changed
+  the program and to date the change. Please make that statement in this file,
+  below the original notice, so a reader finds the whole provenance in one
+  place.
+
+
+PLACEMENT OF THESE TERMS
+========================
+
+Section 7 requires a statement of the additional terms in the relevant source
+files, or a notice saying where to find them. This file is that statement, and
+it covers the whole program: every file in this repository, and every work based
+on any of them. The License section of README.md points here, and the project
+website links to LICENSE and TRADEMARK.md from its footer.
+
+
+THIRD-PARTY NOTICES
+===================
+
+Copy bundles no third-party media. Its alert sounds are the macOS system
+sounds, played by name through NSSound.
+
+The Swift package dependencies keep the licenses declared in their own
+repositories, and CopyCore/Package.resolved pins the exact versions:
+
+    GRDB.swift            MIT
+    KeyboardShortcuts     MIT
+    Sparkle               MIT
+
+Sparkle is linked into the shipped app, so its copyright notice and permission
+notice travel with the binary.
